@@ -1,0 +1,43 @@
+###############################################
+# WhaTap Chaos Infra - Log Flood Demo
+#
+# Works on both Linux and macOS (Apple Silicon)
+#
+# Usage:
+#   ./start_runner.sh                    # start all
+#   ./trouble/log-flood/start.sh         # begin chaos
+#   ./trouble/log-flood/stop.sh          # stop chaos
+#   ./stop_runner.sh                     # stop all
+###############################################
+
+services:
+  log-flood:
+    build: ./runner/log-flood
+    container_name: chaos-log-flood
+    hostname: batch-server-01
+    privileged: true
+    volumes:
+      - ./whatap.conf:/tmp/whatap-base.conf:ro
+    environment:
+      - DISK_LIMIT_MB=${DISK_LIMIT_MB:-1024}
+      - WHATAP_ONAME=chaos-log-flood
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+    restart: unless-stopped
+
+  runner:
+    build: ./runner
+    container_name: chaos-runner
+    ports:
+      - "9090:9090"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./whatap.conf:/tmp/whatap-base.conf:ro
+    environment:
+      - WHATAP_ONAME=chaos-runner
+    depends_on:
+      - log-flood
+    restart: unless-stopped

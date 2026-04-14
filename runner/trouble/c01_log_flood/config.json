@@ -1,0 +1,15 @@
+{
+  "name": "Container Log Flood",
+  "description": "Runs a Docker container that simulates a batch process bug flooding disk with log files. WhaTap Infra Agent monitors disk usage, inode count, and CPU inside the container.",
+  "category": "container",
+  "severity": "high",
+  "targetService": "docker:chaos-log-flood",
+  "targetPort": 0,
+  "defaultDuration": 0,
+  "parameters": [
+    { "name": "file_size_kb", "description": "Size of each log file in KB", "default": "512" },
+    { "name": "interval_ms", "description": "Interval between iterations in ms", "default": "200" },
+    { "name": "files_per_iter", "description": "Files created per iteration", "default": "3" }
+  ],
+  "tags": ["container", "disk", "logging", "infra", "whatap"]
+}

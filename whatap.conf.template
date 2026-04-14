@@ -1,0 +1,13 @@
+## WhaTap Infra Agent Configuration
+## Copy this file to whatap.conf and fill in your values:
+##   cp whatap.conf.template whatap.conf
+##
+## Get credentials from: https://service.whatap.io
+##   > Infrastructure Monitoring > Project > Management > Agent Install
+##
+## Note: oname is set automatically per container via docker-compose.yml
+##   chaos-runner     -> oname=chaos-runner
+##   chaos-log-flood  -> oname=chaos-log-flood
+
+license=YOUR_LICENSE_KEY_HERE
+whatap.server.host=YOUR_WHATAP_SERVER_IP

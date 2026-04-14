@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chaos Scenario Runner</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-dim: #8b949e;
+  --accent: #58a6ff;
+  --green: #3fb950;
+  --red: #f85149;
+  --orange: #d29922;
+  --yellow: #e3b341;
+  --purple: #bc8cff;
+  --blue: #58a6ff;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-left h1 {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.health-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  transition: background 0.3s;
+}
+.health-dot.ok { background: var(--green); }
+.health-dot.error { background: var(--red); }
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.summary-text {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.btn {
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  background: var(--surface);
+  color: var(--text);
+  transition: all 0.15s;
+}
+.btn:hover { background: var(--border); }
+.btn-danger { border-color: var(--red); color: var(--red); }
+.btn-danger:hover { background: rgba(248,81,73,0.15); }
+.btn-start { border-color: var(--green); color: var(--green); }
+.btn-start:hover { background: rgba(63,185,80,0.15); }
+.btn-stop { border-color: var(--orange); color: var(--orange); }
+.btn-stop:hover { background: rgba(210,153,34,0.15); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn:disabled:hover { background: var(--surface); }
+
+.filters {
+  padding: 12px 24px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.filter-btn {
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-dim);
+  transition: all 0.15s;
+}
+.filter-btn:hover { color: var(--text); border-color: var(--text-dim); }
+.filter-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.search-input {
+  margin-left: auto;
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  width: 200px;
+}
+.search-input::placeholder { color: var(--text-dim); }
+.search-input:focus { outline: none; border-color: var(--accent); }
+
+.grid {
+  padding: 24px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+.card:hover { border-color: var(--text-dim); }
+.card.state-RUNNING { border-left: 3px solid var(--green); }
+.card.state-STARTING { border-left: 3px solid var(--blue); }
+.card.state-STOPPING { border-left: 3px solid var(--orange); }
+.card.state-ERROR { border-left: 3px solid var(--red); }
+
+.card-header {
+  padding: 14px 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.card-title-area {
+  flex: 1;
+}
+
+.card-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.card-id {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: monospace;
+}
+
+.card-badges {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+.badge-category {
+  background: rgba(88,166,255,0.15);
+  color: var(--accent);
+}
+.badge-severity-low { background: rgba(63,185,80,0.15); color: var(--green); }
+.badge-severity-medium { background: rgba(210,153,34,0.15); color: var(--orange); }
+.badge-severity-high { background: rgba(248,81,73,0.15); color: var(--red); }
+.badge-severity-critical { background: rgba(248,81,73,0.3); color: var(--red); font-weight: 700; }
+
+.state-indicator {
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.state-STOPPED { background: rgba(139,148,158,0.15); color: var(--text-dim); }
+.state-STARTING { background: rgba(88,166,255,0.2); color: var(--blue); }
+.state-RUNNING { background: rgba(63,185,80,0.2); color: var(--green); }
+.state-STOPPING { background: rgba(210,153,34,0.2); color: var(--orange); }
+.state-ERROR { background: rgba(248,81,73,0.2); color: var(--red); }
+
+.card-body {
+  padding: 0 16px 14px;
+}
+
+.card-desc {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.card-target {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+}
+.card-target span {
+  color: var(--text);
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.params-toggle {
+  font-size: 12px;
+  color: var(--accent);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 4px 0;
+}
+.params-toggle:hover { text-decoration: underline; }
+
+.params-section {
+  display: none;
+  margin-top: 10px;
+  padding: 10px;
+  background: var(--bg);
+  border-radius: 6px;
+}
+.params-section.open { display: block; }
+
+.param-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.param-row:last-child { margin-bottom: 0; }
+
+.param-label {
+  font-size: 12px;
+  color: var(--text-dim);
+  min-width: 80px;
+}
+
+.param-input {
+  flex: 1;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+  font-family: monospace;
+}
+.param-input:focus { outline: none; border-color: var(--accent); }
+
+.output-section {
+  margin-top: 10px;
+  padding: 8px;
+  background: var(--bg);
+  border-radius: 6px;
+  max-height: 120px;
+  overflow-y: auto;
+  display: none;
+}
+.output-section.open { display: block; }
+.output-section pre {
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-family: monospace;
+}
+
+.loading {
+  text-align: center;
+  padding: 60px;
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.pulsing { animation: pulse 1.5s ease-in-out infinite; }
+</style>
+</head>
+<body>
+<header>
+  <div class="header-left">
+    <div class="health-dot" id="healthDot"></div>
+    <h1>Chaos Scenario Runner</h1>
+  </div>
+  <div class="header-right">
+    <span class="summary-text" id="summaryText">Loading...</span>
+    <button class="btn btn-danger" id="stopAllBtn" onclick="stopAll()">Stop All</button>
+  </div>
+</header>
+
+<div class="filters">
+  <button class="filter-btn active" data-cat="all" onclick="setFilter('all', this)">All</button>
+  <button class="filter-btn" data-cat="application" onclick="setFilter('application', this)">Application</button>
+  <button class="filter-btn" data-cat="container" onclick="setFilter('container', this)">Container</button>
+  <button class="filter-btn" data-cat="database" onclick="setFilter('database', this)">Database</button>
+  <input type="text" class="search-input" id="searchInput" placeholder="Search scenarios..." oninput="applyFilters()">
+</div>
+
+<div class="grid" id="grid">
+  <div class="loading">Loading scenarios...</div>
+</div>
+
+<script>
+const API = '/api/v1';
+let scenarios = [];
+let currentFilter = 'all';
+let polling = null;
+
+async function fetchJson(url, opts) {
+  const res = await fetch(url, opts);
+  return res.json();
+}
+
+async function loadScenarios() {
+  try {
+    const data = await fetchJson(`${API}/scenarios`);
+    scenarios = data.scenarios || [];
+    document.getElementById('summaryText').textContent =
+      `${data.summary.total} scenarios | ${data.summary.running} running`;
+    document.getElementById('healthDot').className = 'health-dot ok';
+    renderCards();
+  } catch (e) {
+    document.getElementById('healthDot').className = 'health-dot error';
+    document.getElementById('summaryText').textContent = 'Connection error';
+  }
+}
+
+function renderCards() {
+  const grid = document.getElementById('grid');
+  const search = document.getElementById('searchInput').value.toLowerCase();
+
+  const filtered = scenarios.filter(s => {
+    if (currentFilter !== 'all' && s.category !== currentFilter) return false;
+    if (search && !s.name.toLowerCase().includes(search) && !s.id.toLowerCase().includes(search)
+        && !(s.tags || []).some(t => t.toLowerCase().includes(search))) return false;
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    grid.innerHTML = '<div class="loading">No scenarios match the filter</div>';
+    return;
+  }
+
+  grid.innerHTML = filtered.map(s => cardHtml(s)).join('');
+}
+
+function cardHtml(s) {
+  const isRunning = s.state === 'RUNNING' || s.state === 'STARTING';
+  const isBusy = s.state === 'STARTING' || s.state === 'STOPPING';
+
+  return `
+  <div class="card state-${s.state}" id="card-${s.id}">
+    <div class="card-header">
+      <div class="card-title-area">
+        <div class="card-title">${esc(s.name)}</div>
+        <div class="card-id">${esc(s.id)}</div>
+        <div class="card-badges">
+          <span class="badge badge-category">${esc(s.category)}</span>
+          <span class="badge badge-severity-${s.severity}">${esc(s.severity)}</span>
+          ${s.targetService ? `<span class="badge" style="background:rgba(188,140,255,0.15);color:var(--purple)">${esc(s.targetService)}</span>` : ''}
+        </div>
+      </div>
+      <span class="state-indicator state-${s.state} ${isBusy ? 'pulsing' : ''}">${s.state}</span>
+    </div>
+    <div class="card-body">
+      <div class="card-actions">
+        <button class="btn btn-start" ${isRunning || isBusy ? 'disabled' : ''}
+          onclick="startScenario('${s.id}')">Start</button>
+        <button class="btn btn-stop" ${!isRunning || s.state === 'STOPPING' ? 'disabled' : ''}
+          onclick="stopScenario('${s.id}')">Stop</button>
+        <button class="params-toggle" onclick="toggleParams('${s.id}')">Parameters</button>
+        <button class="params-toggle" onclick="toggleOutput('${s.id}')">Output</button>
+      </div>
+      <div class="params-section" id="params-${s.id}"></div>
+      <div class="output-section" id="output-${s.id}"><pre>No output yet</pre></div>
+    </div>
+  </div>`;
+}
+
+async function toggleParams(id) {
+  const el = document.getElementById(`params-${id}`);
+  if (el.classList.contains('open')) {
+    el.classList.remove('open');
+    return;
+  }
+  // Fetch detail
+  try {
+    const detail = await fetchJson(`${API}/scenarios/${id}`);
+    const params = detail.parameters || [];
+    if (params.length === 0) {
+      el.innerHTML = '<span style="font-size:12px;color:var(--text-dim)">No parameters</span>';
+    } else {
+      el.innerHTML = params.map(p => `
+        <div class="param-row">
+          <label class="param-label" title="${esc(p.description)}">${esc(p.name)}</label>
+          <input class="param-input" data-scenario="${id}" data-param="${esc(p.name)}"
+            value="${esc(p['default'] || '')}" placeholder="${esc(p.description)}">
+        </div>
+      `).join('');
+    }
+  } catch (e) {
+    el.innerHTML = '<span style="color:var(--red);font-size:12px">Failed to load</span>';
+  }
+  el.classList.add('open');
+}
+
+async function toggleOutput(id) {
+  const el = document.getElementById(`output-${id}`);
+  if (el.classList.contains('open')) {
+    el.classList.remove('open');
+    return;
+  }
+  try {
+    const detail = await fetchJson(`${API}/scenarios/${id}`);
+    let text = detail.lastOutput || 'No output yet';
+    if (detail.lastError) text += '\n[ERROR] ' + detail.lastError;
+    el.querySelector('pre').textContent = text;
+  } catch (e) {
+    el.querySelector('pre').textContent = 'Failed to load';
+  }
+  el.classList.add('open');
+}
+
+async function startScenario(id) {
+  const params = {};
+  document.querySelectorAll(`input[data-scenario="${id}"]`).forEach(inp => {
+    if (inp.value) params[inp.dataset.param] = inp.value;
+  });
+  try {
+    await fetchJson(`${API}/scenarios/${id}/start`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({params})
+    });
+    // Quick refresh
+    setTimeout(loadScenarios, 500);
+    setTimeout(loadScenarios, 2000);
+  } catch (e) {
+    alert('Failed to start: ' + e.message);
+  }
+}
+
+async function stopScenario(id) {
+  try {
+    await fetchJson(`${API}/scenarios/${id}/stop`, {method: 'POST'});
+    setTimeout(loadScenarios, 500);
+    setTimeout(loadScenarios, 2000);
+  } catch (e) {
+    alert('Failed to stop: ' + e.message);
+  }
+}
+
+async function stopAll() {
+  if (!confirm('Stop ALL running scenarios?')) return;
+  try {
+    const data = await fetchJson(`${API}/scenarios/stop-all`, {method: 'POST'});
+    setTimeout(loadScenarios, 1000);
+  } catch (e) {
+    alert('Failed: ' + e.message);
+  }
+}
+
+function setFilter(cat, btn) {
+  currentFilter = cat;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  applyFilters();
+}
+
+function applyFilters() {
+  renderCards();
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Init
+loadScenarios();
+polling = setInterval(loadScenarios, 3000);
+</script>
+</body>
+</html>

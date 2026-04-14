@@ -1,0 +1,21 @@
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Java
+*.class
+out/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+*.log
+
+# WhaTap credentials (use whatap.conf.template)
+whatap.conf
+
+# Compiled output
+runner/out/
