@@ -49,6 +49,29 @@ open http://localhost:9090
 ./stop_runner.sh
 ```
 
+### No-TXID 로그 시뮬레이터 (AIOps "solo log admitted" 검증용)
+
+WhaTap-Infra 에이전트의 logsink 모듈로 ERROR 레벨 로그를 흘려보내는
+독립 컨테이너. APM 컨텍스트가 없으므로 모든 라인이 `@txid` 없이
+게이트웨이에 도달 — AIOps `ErrorQueue`의 솔로 로그(no-txid) 처리
+경로를 검증할 때 사용.
+
+```bash
+# 시작 (runner 와 무관, 단독 기동 가능)
+docker compose up -d no-txid-logs
+
+# 로그 확인
+docker logs -f chaos-no-txid-logs
+docker exec chaos-no-txid-logs tail -f /var/log/no-txid/app.log
+
+# 중지
+docker compose stop no-txid-logs
+```
+
+생성 주기는 `NO_TXID_INTERVAL_SEC`(기본 5초, ±jitter)로 조절. 6개의
+배경 워커 에러 패턴(Quartz, Kafka consumer, Spring boot startup,
+JVM thread, HikariCP, AOP)을 무작위로 발생.
+
 ## 동작 방식
 
 ```

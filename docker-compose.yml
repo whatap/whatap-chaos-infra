@@ -28,6 +28,27 @@ services:
           cpus: "1.0"
     restart: unless-stopped
 
+  no-txid-logs:
+    # Standalone container that ships ERROR-level log lines through the
+    # WhaTap-Infra agent's logsink module — every line arrives at the
+    # gateway with no @txid attached. Used to validate the AIOps
+    # "solo log admitted" path (no-txid drop fix). Does NOT depend on
+    # the runner; bring up with `docker compose up -d no-txid-logs`.
+    build: ./runner/no-txid-logs
+    container_name: chaos-no-txid-logs
+    hostname: app-server-no-txid
+    volumes:
+      - ./whatap.conf:/tmp/whatap-base.conf:ro
+    environment:
+      - WHATAP_ONAME=chaos-no-txid-logs
+      - INTERVAL_SEC=${NO_TXID_INTERVAL_SEC:-5}
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+    restart: unless-stopped
+
   runner:
     build: ./runner
     container_name: chaos-runner
