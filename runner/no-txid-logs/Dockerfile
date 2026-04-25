@@ -3,7 +3,10 @@ FROM ubuntu:22.04
 ARG DEBIAN_FRONTEND=noninteractive
 ARG TARGETARCH
 
-# Minimal toolchain for the bash generator + whatap-infra install
+# Minimal toolchain for the bash generator + whatap-infra install.
+# `ca-certificates` is required so wget can validate repo.whatap.io's TLS
+# chain (CloudFront → AmazonS3); without it the deb fetch fails with
+# wget exit 5 (SSL verification failure) on minimal Ubuntu builds.
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         bash \
@@ -11,7 +14,9 @@ RUN apt-get update && \
         procps \
         curl \
         wget \
+        ca-certificates \
         uuid-runtime \
+    && update-ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Install WhaTap Infra Agent (multi-arch). Same version as the log-flood scenario.
